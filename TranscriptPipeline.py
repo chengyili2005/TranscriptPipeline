@@ -310,6 +310,6 @@ def script(audio_path=str, transcript=str or list, temp_dir=TEMP_DIR, languages=
   done2json(segments)
 
   # Export: Datavyu
-  # NOTE: Exporting to Datavyu is near-impossible because of Datavyu's environment so I'm just going to leave it here for exports...
+  # NOTE: Exporting to Datavyu is near-impossible without Datavyu's environment so I'm just going to leave it here for exports...
 
   return segments
