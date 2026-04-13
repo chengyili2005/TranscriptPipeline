@@ -1,0 +1,11 @@
+name: TranscriptPipeline
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - montreal-forced-aligner
+  - pip
+  - pip:
+    - TextGrid
+    - lingua-language-detector

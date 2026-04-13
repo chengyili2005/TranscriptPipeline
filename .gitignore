@@ -1,1 +1,6 @@
-output/
+# Don't accidentally push data into the repo
+*.wav
+*.TextGrid
+*.json
+*.Datavyu
+*.csv

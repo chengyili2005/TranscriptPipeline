@@ -17,7 +17,7 @@ import json
 
 # === GLOBALS === #
 
-TEMP_DIR = 'output/'
+OUTPUT_DIR = 'output/'
 LANGUAGES = [Language.ENGLISH, Language.SPANISH, Language.CHINESE]
 LANGUAGES_MAP = {
   Language.ENGLISH: {'dictionary': 'english_us_arpa', 'acoustic': 'english_us_arpa'},
@@ -26,7 +26,6 @@ LANGUAGES_MAP = {
 }
 DOWNLOADED_ACOUSTICS = []
 DOWNLOADED_DICTIONARIES = []
-BASE_NAME = 'PARTICIPANT_ID'
 
 # === CONFIGURE MFA === #
 
@@ -92,7 +91,7 @@ def contains_language(segments, language):
       return True
   return False
 
-def done2textgrid(segments, output_path=os.path.join(TEMP_DIR, BASE_NAME + '_Aligned' + '.TextGrid')):
+def done2textgrid(segments, output_path=os.path.join(OUTPUT_DIR, 'base_name' + '_Aligned' + '.TextGrid')):
     """Returns the final transcript (AFTER RUNNING THE FULL SCRIPT) into a TextGrid"""
     tg = TextGrid()
     raw_utt_tier = IntervalTier(name="Raw Utterance", minTime=tg.minTime, maxTime=tg.maxTime)
@@ -130,7 +129,7 @@ def done2textgrid(segments, output_path=os.path.join(TEMP_DIR, BASE_NAME + '_Ali
                 utt_lang_tier.add(
                     unique_words[0]['start'],
                     unique_words[-1]['end'],
-                    f"{segment['language'][0].name}, {segment['language'][1]:.4f}"
+                    f"{segment['language'][0]}, {segment['language'][1]:.4f}"
                 )
             except Exception as e:
                 print("Failed to add utt_lang_tier:", e, segment)
@@ -143,7 +142,7 @@ def done2textgrid(segments, output_path=os.path.join(TEMP_DIR, BASE_NAME + '_Ali
                 utt_lang_tier.add(
                     segment['start'],
                     segment['end'],
-                    f"{segment['language'][0].name}, {segment['language'][1]:.4f}"
+                    f"{segment['language'][0]}, {segment['language'][1]:.4f}"
                 )
             except Exception as e:
                 print("Failed to add utt_lang_tier (fallback):", e, segment)
@@ -157,7 +156,7 @@ def done2textgrid(segments, output_path=os.path.join(TEMP_DIR, BASE_NAME + '_Ali
                 word_lang_tier.add(
                     word_segment['start'],
                     word_segment['end'],
-                    f"{word_segment['language'][0].name}, {word_segment['language'][1]:.4f}"
+                    f"{word_segment['language'][0]}, {word_segment['language'][1]:.4f}"
                 )
             except Exception as e:
                 print("Failed to add word_lang_tier:", e, word_segment)
@@ -173,24 +172,26 @@ def done2textgrid(segments, output_path=os.path.join(TEMP_DIR, BASE_NAME + '_Ali
     else:
         raise Exception("Empty TextGrid")
 
-def done2json(segments, output_path=os.path.join(TEMP_DIR, BASE_NAME + '_Aligned' + '.json')):
+def done2json(segments, output_path=os.path.join(OUTPUT_DIR, 'base_name' + '_Aligned' + '.json')):
   """Exports to json"""
   with open(output_path, 'w') as f:
     json.dump(segments, f, indent=4)
 
 # === SCRIPT === #
 
-def script(audio_path=str, transcript=str or list, temp_dir=TEMP_DIR, languages=list[Language], download_models=False):
+def script(audio_path=str, transcript=str or list, temp_dir=OUTPUT_DIR, languages=list[Language], download_models=False):
 
   # Download
   if download_models:
     download_MFA_models()
+    print("Downloaded MFA models. You can set download_models to False next time to skip this step!")
 
   # Configure MFA
   configure_MFA_settings()
+  print("MFA configured with --always_clean and --always_final_clean. You can change this in the configure_MFA_settings function.")
 
   # Get variables
-  BASE_NAME = os.path.basename(audio_path).split('.')[0]
+  base_name = os.path.basename(audio_path).split('.')[0]
 
   # Load in the transcript
   if '.json' in transcript:
@@ -229,12 +230,13 @@ def script(audio_path=str, transcript=str or list, temp_dir=TEMP_DIR, languages=
     # Populate the input directory with that language textgrid + a copy of the audio
     shutil.copy2(audio_path, language_in_dir)
     if not is_empty_textgrid(tg):
-      tg.write(os.path.join(language_in_dir, BASE_NAME + '.TextGrid'))
+      tg.write(os.path.join(language_in_dir, base_name + '.TextGrid'))
 
     # Keep paths for later
     LANGUAGES_MAP[language]['language_dir'] = language_dir
     LANGUAGES_MAP[language]['language_in_dir'] = language_in_dir # MFA's corpus directory
     LANGUAGES_MAP[language]['language_out_dir'] = language_out_dir # MFA's output directory
+    print(f"Prepared MFA input for {language}. You can check {language_in_dir} to see the TextGrid and audio that MFA will be aligning for this language.")
 
   """
   At this point: {TEMP_DIR}
@@ -268,7 +270,7 @@ def script(audio_path=str, transcript=str or list, temp_dir=TEMP_DIR, languages=
         raise Exception(f"Failed to align for {language}")
       print(f"{language} alignment done.")
       tg = TextGrid()
-      tg.read(os.path.join(language_out_dir, BASE_NAME + '.TextGrid'))
+      tg.read(os.path.join(language_out_dir, base_name + '.TextGrid'))
       word_intervals += [interval for interval in tg[0]]
 
   # Postprocessing: Sorting words by start time
@@ -304,12 +306,29 @@ def script(audio_path=str, transcript=str or list, temp_dir=TEMP_DIR, languages=
       word_segment['language'] = word_segment['language'][0].name, segment['language'][1]
 
   # Export: Praat
-  done2textgrid(segments)
+  print("Start exporting TextGrid...")
+  done2textgrid(segments, output_path=os.path.join(OUTPUT_DIR, base_name + '_Aligned' + '.TextGrid'))
+  print("Done exporting TextGrid.")
 
   # Export: Json
-  done2json(segments)
+  print("Start exporting json...")
+  done2json(segments, output_path=os.path.join(OUTPUT_DIR, base_name + '_Aligned' + '.json'))
+  print("Done exporting json.")
 
   # Export: Datavyu
   # NOTE: Exporting to Datavyu is near-impossible without Datavyu's environment so I'm just going to leave it here for exports...
 
   return segments
+
+# Example script usage
+if __name__ == "__main__":
+   
+  # Set variables
+  INPUT_DIR = 'input/'
+  audio_path = os.path.join(INPUT_DIR, 'example.wav')
+  transcript_path = os.path.join(INPUT_DIR, 'example.json') # NOTE: If it's not in a [{"start": float, "end": float, "text": str}, {"start": float, "end": float, "text": str}, ..., {"start": float, "end": float, "text": str}] format, you will need to do some extra processing to get it into this format
+  
+  # Run alignment
+  segments = script(audio_path, transcript_path, temp_dir=OUTPUT_DIR, languages=LANGUAGES, download_models=False)
+  print("Done! Segments:", segments)
+  print("Also saved as TextGrid and json in the output directory.") # More examples can be found in the README
