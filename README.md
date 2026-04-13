@@ -1,9 +1,5 @@
 # Description
-
-- - -
-
-`TranscriptPipeline.py`: a script + a collection of helper functions to help with transcription process
-- (TODO: list functions)
+`AlignPipeline.py`: a collection of helper functions to help with the MFA process + an example script
 
 # Dependencies
 - [Git](https://git-scm.com/install/)
@@ -36,14 +32,14 @@ conda activate TranscriptPipeline
 # See examples for how to get this from a TextGrid
 ```
 - Data is only English, Spanish, and/or Chinese (Mandarin).
-- Scripts are being ran in the same directory as `TranscriptPipeline.py`
+- Scripts are being ran inside the repo directory.
 
 # Examples
 
 Example: MFA alignment on TextGrid file
 
 ```python
-import TranscriptPipeline as TP
+import AlignPipeline as AP
 from lingua import Language
 from textgrid import TextGrid # For opening TextGrids
 
@@ -66,14 +62,14 @@ for interval in tg[utterance_tier]:
   })
 
 # Call script
-segments = TP.script(audio_path=audio_path, transcript=transcript, temp_dir=output_dir, languages=languages, download_models=False)
+segments = AP.script(audio_path=audio_path, transcript=transcript, temp_dir=output_dir, languages=languages, download_models=False)
 print(segments)
 ```
 
 Example: Using on a single file
 
 ```python
-import TranscriptPipeline as TP
+import AlignPipeline as AP
 from lingua import Language
 
 # Set variables here
@@ -83,14 +79,14 @@ languages = [Language.ENGLISH, Language.SPANISH, Language.CHINESE] # NOTE: Remov
 output_dir = 'output/'
 
 # Call script
-segments = TP.script(audio_path=audio_path, transcript=json_path, temp_dir=output_dir, languages=languages, download_models=False)
+segments = AP.script(audio_path=audio_path, transcript=json_path, temp_dir=output_dir, languages=languages, download_models=False)
 print(segments)
 ```
 
 Example: Batch align for multiple transcript jsons
 
 ```python
-import TranscriptPipeline as TP
+import AlignPipeline as AP
 from lingua import Language
 
 # Set variables as a list
@@ -101,6 +97,6 @@ output_dir = 'output/'
 
 # Call script iteratively
 for audio_path, json_path in zip(audio_paths, json_paths): # NOTE: File paths must correspond to each other
-  segments = TP.script(audio_path=audio_path, transcript=json_path, temp_dir=output_dir, languages=languages, download_models=False)
+  segments = AP.script(audio_path=audio_path, transcript=json_path, temp_dir=output_dir, languages=languages, download_models=False)
   print(segments)
 ```
