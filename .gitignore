@@ -4,3 +4,4 @@
 *.json
 *.Datavyu
 *.csv
+*__pycache__*

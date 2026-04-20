@@ -13,6 +13,7 @@ import subprocess as sp
 from lingua import Language, LanguageDetectorBuilder
 from textgrid import TextGrid, IntervalTier
 import json
+import pandas as pd
 
 # === GLOBALS === #
 
@@ -176,6 +177,20 @@ def done2json(segments, output_path=os.path.join(OUTPUT_DIR, 'base_name' + '_Ali
   with open(output_path, 'w') as f:
     json.dump(segments, f, indent=4)
 
+def done2csv(segments, output_path=os.path.join(OUTPUT_DIR, 'base_name' + '_Aligned' + '.csv')):
+  """Exports to pandas dataframe csv"""
+  df = []
+  for segment in segments:
+    df.append({
+      'start': segment['words'][0]['start'],
+      'end': segment['words'][-1]['end'],
+      'text': segment['text'],
+      'language': segment['language'],
+      'words': segment['words']
+    })
+  df = pd.DataFrame(df)
+  df.to_csv(output_path, index=False)
+
 # === SCRIPT === #
 
 def script(audio_path=str, transcript=str or list, temp_dir=OUTPUT_DIR, languages=list[Language], download_models=False):
@@ -314,6 +329,11 @@ def script(audio_path=str, transcript=str or list, temp_dir=OUTPUT_DIR, language
   done2json(segments, output_path=os.path.join(OUTPUT_DIR, base_name + '_Aligned' + '.json'))
   print("Done exporting json.")
 
+  # Export: CSV
+  print("Start exporting CSV...")
+  done2csv(segments, output_path=os.path.join(OUTPUT_DIR, base_name + '_Aligned' + '.csv'))
+  print("Done exporting CSV.")
+
   # Export: Datavyu
   # NOTE: Exporting to Datavyu is near-impossible without Datavyu's environment so I'm just going to leave it here for exports...
 
@@ -330,4 +350,4 @@ if __name__ == "__main__":
   # Run alignment
   segments = script(audio_path, transcript_path, temp_dir=OUTPUT_DIR, languages=LANGUAGES, download_models=False)
   print("Done! Segments:", segments)
-  print("Also saved as TextGrid and json in the output directory.") # More examples can be found in the README
+  print("Also saved as TextGrid, CSV, and json in the output directory.") # More examples can be found in the README

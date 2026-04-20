@@ -15,7 +15,7 @@ git clone https://github.com/chengyili2005/TranscriptPipeline.git
 ### Make a conda environment w/ requirements
 ```bash
 # Create & activate the environment
-conda env create -f environment.yml
+conda env create -f environment.yaml
 conda activate TranscriptPipeline
 ```
 
@@ -33,6 +33,12 @@ conda activate TranscriptPipeline
 ```
 - Data is only English, Spanish, and/or Chinese (Mandarin).
 - Scripts are being ran inside the repo directory.
+
+# Use as FastAPI
+
+```bash
+uvicorn api:app --host 0.0.0.0 --reload
+```
 
 # Examples
 
@@ -100,3 +106,8 @@ for audio_path, json_path in zip(audio_paths, json_paths): # NOTE: File paths mu
   segments = AP.script(audio_path=audio_path, transcript=json_path, temp_dir=output_dir, languages=languages, download_models=False)
   print(segments)
 ```
+
+# Next steps
+- An easier UI
+- Speaker diarization (parent or child or interviewer or 3rd parties)
+- Finetuned English-Spanish-Chinese specific transcription model

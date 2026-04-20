@@ -9,3 +9,16 @@ dependencies:
   - pip:
     - TextGrid
     - lingua-language-detector
+    - fastapi
+    - uvicorn
+    - python-multipart
+    # - torch
+    # - transformers
+    # - peft
+    # - torchaudio
+    # - torchcodec
+    # - soundfile
+    # - pandas
+    # - silero-vad
+
+# FFMPEG is required too for torchaudio to load audio files, but it is not available as a conda package. You can install it separately on your system.
