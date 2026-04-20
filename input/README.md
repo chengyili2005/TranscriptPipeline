@@ -9,3 +9,5 @@ Put input files here. Keep track of their paths, for example: (Assuming you are 
     - example2.wav
     - example2.json  
 ```
+
+If you're using FastAPI you shouldn't need this.

@@ -14,11 +14,12 @@ from lingua import Language, LanguageDetectorBuilder
 from textgrid import TextGrid, IntervalTier
 import json
 import pandas as pd
+import ConfigPipeline as Config
 
 # === GLOBALS === #
 
-OUTPUT_DIR = 'output/'
-LANGUAGES = [Language.ENGLISH, Language.SPANISH, Language.CHINESE]
+OUTPUT_DIR = Config.OUTPUT
+LANGUAGES = Config.LANGUAGES
 LANGUAGES_MAP = {
   Language.ENGLISH: {'dictionary': 'english_us_arpa', 'acoustic': 'english_us_arpa'},
   Language.SPANISH: {'dictionary': 'spanish_mfa', 'acoustic': 'spanish_mfa'},
@@ -171,11 +172,13 @@ def done2textgrid(segments, output_path=os.path.join(OUTPUT_DIR, 'base_name' + '
         tg.write(output_path)
     else:
         raise Exception("Empty TextGrid")
+    print("Exported to: ", output_path)
 
 def done2json(segments, output_path=os.path.join(OUTPUT_DIR, 'base_name' + '_Aligned' + '.json')):
   """Exports to json"""
   with open(output_path, 'w') as f:
     json.dump(segments, f, indent=4)
+  print("Exported to: ", output_path)
 
 def done2csv(segments, output_path=os.path.join(OUTPUT_DIR, 'base_name' + '_Aligned' + '.csv')):
   """Exports to pandas dataframe csv"""
@@ -190,6 +193,7 @@ def done2csv(segments, output_path=os.path.join(OUTPUT_DIR, 'base_name' + '_Alig
     })
   df = pd.DataFrame(df)
   df.to_csv(output_path, index=False)
+  print("Exported to: ", output_path)
 
 # === SCRIPT === #
 
@@ -348,6 +352,6 @@ if __name__ == "__main__":
   transcript_path = os.path.join(INPUT_DIR, 'example.json') # NOTE: If it's not in a [{"start": float, "end": float, "text": str}, {"start": float, "end": float, "text": str}, ..., {"start": float, "end": float, "text": str}] format, you will need to do some extra processing to get it into this format
   
   # Run alignment
-  segments = script(audio_path, transcript_path, temp_dir=OUTPUT_DIR, languages=LANGUAGES, download_models=False)
+  segments = script(audio_path, transcript_path, temp_dir=Config.OUTPUT_DIR, languages=LANGUAGES, download_models=False)
   print("Done! Segments:", segments)
   print("Also saved as TextGrid, CSV, and json in the output directory.") # More examples can be found in the README

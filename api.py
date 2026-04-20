@@ -7,7 +7,9 @@ import tempfile
 import shutil
 import json
 
-from AlignPipeline import script, LANGUAGES, OUTPUT_DIR
+import TranscribePipeline as TP
+import AlignPipeline as AP
+import ConfigPipeline as Config
 from lingua import Language
 
 app = FastAPI(title="Transcript Pipeline API")
@@ -20,6 +22,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.post("/transcribe")
+async def transcribe_audio(
+    audio: UploadFile = File(...),
+    method: str = Form(""), # ["whisper", "aws", "sonix", ""]
+):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        audio_path = os.path.join(temp_dir, audio.filename)
+        with open(audio_path, "wb") as f:
+            shutil.copyfileobj(audio.file, f)
+        
+        try: 
+            result = TP.script(
+                audio_path=audio_path,
+                temp_dir=temp_dir,
+                languages=Config.LANGUAGES,
+                method=method,
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+        
+        return {"result": result}
 
 @app.post("/align")
 async def align_audio(
@@ -39,11 +62,11 @@ async def align_audio(
             raise HTTPException(status_code=400, detail="Invalid JSON transcript")
 
         try:
-            result = script(
+            result = AP.script(
                 audio_path=audio_path,
                 transcript=segments,
                 temp_dir=temp_dir,
-                languages=LANGUAGES,
+                languages=Config.LANGUAGES,
                 download_models=download_models,
             )
         except Exception as e:
@@ -52,19 +75,19 @@ async def align_audio(
         base_name = os.path.basename(audio_path).split(".")[0]
 
         if output_format == "json":
-            output_path = os.path.join(temp_dir, base_name + "_Aligned.json")
+            output_path = os.path.join(Config.OUTPUT_DIR, base_name + "_Aligned.json")
             return FileResponse(
                 output_path,
                 media_type="application/json",
                 filename=f"{base_name}_Aligned.json",
             )
         elif output_format == "csv":
-            output_path = os.path.join(temp_dir, base_name + "_Aligned.csv")
+            output_path = os.path.join(Config.OUTPUT_DIR, base_name + "_Aligned.csv")
             return FileResponse(
                 output_path, media_type="text/csv", filename=f"{base_name}_Aligned.csv"
             )
         elif output_format == "textgrid":
-            output_path = os.path.join(temp_dir, base_name + "_Aligned.TextGrid")
+            output_path = os.path.join(Config.OUTPUT_DIR, base_name + "_Aligned.TextGrid")
             return FileResponse(
                 output_path,
                 media_type="application/octet-stream",
@@ -72,7 +95,6 @@ async def align_audio(
             )
         else:
             return {"segments": result}
-
 
 @app.get("/health")
 async def health():
