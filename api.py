@@ -6,9 +6,11 @@ import os
 import tempfile
 import shutil
 import json
+import zipfile
 
 import TranscribePipeline as TP
 import AlignPipeline as AP
+import EditPipeline as EP
 import ConfigPipeline as Config
 from lingua import Language
 
@@ -42,24 +44,29 @@ async def transcribe_audio(
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
         
-        return {"result": result}
+        return result
 
 @app.post("/align")
 async def align_audio(
     audio: UploadFile = File(...),
-    transcript: str = Form(...),
+    transcript_file: Optional[UploadFile] = File(None), # Optional file
+    transcript_text: Optional[str] = Form(None),       # Optional text box
     download_models: bool = Form(False),
-    output_format: str = Form("json"),
 ):
+    
     with tempfile.TemporaryDirectory() as temp_dir:
         audio_path = os.path.join(temp_dir, audio.filename)
         with open(audio_path, "wb") as f:
             shutil.copyfileobj(audio.file, f)
 
-        try:
-            segments = json.loads(transcript)
-        except json.JSONDecodeError:
-            raise HTTPException(status_code=400, detail="Invalid JSON transcript")
+        # Determine which source to use
+        if transcript_file:
+            content = await transcript_file.read()
+            segments = json.loads(content)
+        elif transcript_text:
+            segments = json.loads(transcript_text)
+        else:
+            raise HTTPException(status_code=400, detail="Please provide either a JSON file or paste the JSON text.")
 
         try:
             result = AP.script(
@@ -74,27 +81,81 @@ async def align_audio(
 
         base_name = os.path.basename(audio_path).split(".")[0]
 
-        if output_format == "json":
-            output_path = os.path.join(Config.OUTPUT_DIR, base_name + "_Aligned.json")
-            return FileResponse(
-                output_path,
-                media_type="application/json",
-                filename=f"{base_name}_Aligned.json",
-            )
-        elif output_format == "csv":
-            output_path = os.path.join(Config.OUTPUT_DIR, base_name + "_Aligned.csv")
-            return FileResponse(
-                output_path, media_type="text/csv", filename=f"{base_name}_Aligned.csv"
-            )
-        elif output_format == "textgrid":
-            output_path = os.path.join(Config.OUTPUT_DIR, base_name + "_Aligned.TextGrid")
-            return FileResponse(
-                output_path,
-                media_type="application/octet-stream",
-                filename=f"{base_name}_Aligned.TextGrid",
-            )
-        else:
-            return {"segments": result}
+        output_files = {
+            f"{base_name}_Aligned.json":      (os.path.join(Config.OUTPUT_DIR, f"{base_name}_Aligned.json"),      "application/json"),
+            f"{base_name}_Aligned.csv":       (os.path.join(Config.OUTPUT_DIR, f"{base_name}_Aligned.csv"),       "text/csv"),
+            f"{base_name}_Aligned.TextGrid":  (os.path.join(Config.OUTPUT_DIR, f"{base_name}_Aligned.TextGrid"),  "application/octet-stream"),
+        }
+
+        # If only one file exists, return it directly
+        existing_files = {name: info for name, info in output_files.items() if os.path.exists(info[0])}
+
+        if len(existing_files) == 1:
+            name, (path, media_type) = next(iter(existing_files.items()))
+            return FileResponse(path, media_type=media_type, filename=name)
+
+        # Otherwise, zip all existing outputs and return the zip
+        zip_filename = f"{base_name}_Aligned.zip"
+        zip_path = os.path.join(Config.OUTPUT_DIR, zip_filename)
+
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            for name, (path, _) in existing_files.items():
+                zf.write(path, arcname=name)
+
+        if not existing_files:
+            raise HTTPException(status_code=500, detail="No output files were generated.")
+
+        return FileResponse(zip_path, media_type="application/zip", filename=zip_filename)
+    
+@app.post("/edit/json-to-textgrid")
+async def convert_json_to_tg(
+    file: Optional[UploadFile] = File(None),
+    json_text: Optional[str] = Form(None)
+):
+    """Upload simplified JSON OR paste it, download TextGrid."""
+    
+    if file:
+        content = await file.read()
+        data = json.loads(content)
+        base_name = file.filename.rsplit('.', 1)[0]
+    elif json_text:
+        data = json.loads(json_text)
+        base_name = "pasted_transcript"
+    else:
+        raise HTTPException(400, "Provide a .json file or paste the JSON content.")
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        tg_path = os.path.join(temp_dir, f"{base_name}.TextGrid")
+        EP.json_to_textgrid(data, tg_path)
+        return FileResponse(tg_path, filename=f"{base_name}.TextGrid")
+
+@app.post("/edit/textgrid-to-json")
+async def convert_tg_to_json(
+    file: UploadFile = File(...),
+    tier_index: int = Form(0) # Default to the first tier
+):
+    """Upload edited TextGrid, specify the tier index, download simple JSON."""
+    if not file.filename.endswith('.TextGrid'):
+        raise HTTPException(400, "Please upload a .TextGrid file")
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        tg_path = os.path.join(temp_dir, file.filename)
+        with open(tg_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+            
+        try:
+            segments = EP.textgrid_to_json(tg_path, tier_index=tier_index)
+            
+            json_name = file.filename.replace(".TextGrid", ".json")
+            json_path = os.path.join(temp_dir, json_name)
+            with open(json_path, "w") as f:
+                json.dump(segments, f, indent=4)
+                
+            return FileResponse(json_path, filename=json_name)
+        except IndexError as e:
+            raise HTTPException(400, detail=str(e))
+        except Exception as e:
+            raise HTTPException(500, detail=f"Conversion failed: {str(e)}")
 
 @app.get("/health")
 async def health():

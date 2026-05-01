@@ -18,7 +18,7 @@ import ConfigPipeline as Config
 
 # === GLOBALS === #
 
-OUTPUT_DIR = Config.OUTPUT
+OUTPUT_DIR = Config.OUTPUT_DIR
 LANGUAGES = Config.LANGUAGES
 LANGUAGES_MAP = {
   Language.ENGLISH: {'dictionary': 'english_us_arpa', 'acoustic': 'english_us_arpa'},
@@ -352,6 +352,6 @@ if __name__ == "__main__":
   transcript_path = os.path.join(INPUT_DIR, 'example.json') # NOTE: If it's not in a [{"start": float, "end": float, "text": str}, {"start": float, "end": float, "text": str}, ..., {"start": float, "end": float, "text": str}] format, you will need to do some extra processing to get it into this format
   
   # Run alignment
-  segments = script(audio_path, transcript_path, temp_dir=Config.OUTPUT_DIR, languages=LANGUAGES, download_models=False)
+  segments = script(audio_path, transcript_path, temp_dir=OUTPUT_DIR, languages=LANGUAGES, download_models=False)
   print("Done! Segments:", segments)
   print("Also saved as TextGrid, CSV, and json in the output directory.") # More examples can be found in the README

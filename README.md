@@ -110,5 +110,5 @@ for audio_path, json_path in zip(audio_paths, json_paths): # NOTE: File paths mu
 
 # Next steps
 - An easier UI
-- Speaker diarization (parent or child or interviewer or 3rd parties)
-- Finetuned English-Spanish-Chinese specific transcription model
+- TranscriptPipeline: Transcription + Speaker diarization (parent or child or interviewer or 3rd parties)
+- EditPipeline: Edit only the content, leave timestamps to be done with alignment 

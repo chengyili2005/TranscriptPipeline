@@ -5,3 +5,9 @@
 *.Datavyu
 *.csv
 *__pycache__*
+
+# Secret
+GUIDE.md
+
+# Other
+.*
