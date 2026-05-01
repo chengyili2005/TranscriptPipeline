@@ -1,11 +1,8 @@
-# Description
-`AlignPipeline.py`: a collection of helper functions to help with the MFA process + an example script
+# Setup
 
-# Dependencies
+### Download dependencies
 - [Git](https://git-scm.com/install/)
 - [Conda](https://www.anaconda.com/download) (+ Python)
-
-# Setup
 
 ### Clone
 ```bash
@@ -19,9 +16,27 @@ conda env create -f environment.yaml
 conda activate TranscriptPipeline
 ```
 
+# Use as FastAPI
+
+```bash
+# cd TranscriptPipeline/ directory
+uvicorn api:app --host 0.0.0.0 --port 8000
+```
+Then, visit http://localhost:8000/docs for a frontend interface
+
+# Endpoints
+You do not have to go through the full pipeline.
+### Transcribe
+- Takes in a `.wav` file and transcribes it using Whisper
+    - If you already have a transcript, make sure it's in the assumed format in the **Assumptions** section. TextGrid2Json might help with that.
+### Edit
+- Json2TextGrid: After transcription, take the `.json` and convert it into a `.TextGrid`. Edit **ONLY** the **TEXT CONTENT**, no need to edit the timings as they will be fixed later.
+- TextGrid2Json: After editting, turn the `.TextGrid` back into a `.json` for the alignment to be done.
+### Align
+- Takes in a `.wav` file + `.json` transcript and outputs a .zip file of aligned text in `.csv`, `.json`, and `.TextGrid`.
 # Assumptions
 
-- Transcript json must be formatted like this:
+- Transcript must be formatted like this:
 ```python
 [
   {'start':start, 'end':end, 'text':text},
@@ -33,82 +48,3 @@ conda activate TranscriptPipeline
 ```
 - Data is only English, Spanish, and/or Chinese (Mandarin).
 - Scripts are being ran inside the repo directory.
-
-# Use as FastAPI
-
-```bash
-uvicorn api:app --host 0.0.0.0 --port 8000
-```
-Then, visit http://localhost:8000/docs for a frontend interface
-
-# Examples
-
-Example: MFA alignment on TextGrid file
-
-```python
-import AlignPipeline as AP
-from lingua import Language
-from textgrid import TextGrid # For opening TextGrids
-
-# Set variables & specify tier with utterances
-audio_path = 'input/example1.wav'
-textgrid_path = 'input/example1.TextGrid'
-utterance_tier = 0 # NOTE: First tier is utterance
-languages = [Language.ENGLISH, Language.SPANISH, Language.CHINESE]
-output_dir = 'output/'
-
-# Extract json from textgrid
-tg = TextGrid()
-tg.read(textgrid_path)
-transcript = []
-for interval in tg[utterance_tier]:
-  transcript.append({
-    "start": interval.minTime,
-    "end": interval.maxTime,
-    "text": interval.mark
-  })
-
-# Call script
-segments = AP.script(audio_path=audio_path, transcript=transcript, temp_dir=output_dir, languages=languages, download_models=False)
-print(segments)
-```
-
-Example: Using on a single file
-
-```python
-import AlignPipeline as AP
-from lingua import Language
-
-# Set variables here
-audio_path = 'input/example1.wav'
-json_path = 'input/example1.json'
-languages = [Language.ENGLISH, Language.SPANISH, Language.CHINESE] # NOTE: Remove some languages if you know it's not in your data
-output_dir = 'output/'
-
-# Call script
-segments = AP.script(audio_path=audio_path, transcript=json_path, temp_dir=output_dir, languages=languages, download_models=False)
-print(segments)
-```
-
-Example: Batch align for multiple transcript jsons
-
-```python
-import AlignPipeline as AP
-from lingua import Language
-
-# Set variables as a list
-audio_paths = ['input/example1.wav', 'input/example2.wav', 'input/example3.wav']
-json_paths = ['input/transcript1.json', 'input/transcript2.json', 'input/transcript3.json']
-languages = [Language.ENGLISH, Language.SPANISH, Language.CHINESE]
-output_dir = 'output/'
-
-# Call script iteratively
-for audio_path, json_path in zip(audio_paths, json_paths): # NOTE: File paths must correspond to each other
-  segments = AP.script(audio_path=audio_path, transcript=json_path, temp_dir=output_dir, languages=languages, download_models=False)
-  print(segments)
-```
-
-# Next steps
-- An easier UI
-- TranscriptPipeline: Transcription + Speaker diarization (parent or child or interviewer or 3rd parties)
-- EditPipeline: Edit only the content, leave timestamps to be done with alignment 

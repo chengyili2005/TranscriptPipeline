@@ -1,24 +1,28 @@
 name: TranscriptPipeline
 channels:
   - conda-forge
+  - pytorch
+  - nvidia
   - defaults
 dependencies:
   - python=3.11
   - montreal-forced-aligner
+  - pytorch
+  - torchaudio
+  - pytorch-cuda=11.8  # Or 12.1 depending on your GPU driver
+  - ffmpeg
   - pip
+  - pandas
   - pip:
     - TextGrid
     - lingua-language-detector
     - fastapi
     - uvicorn
     - python-multipart
-    - torch
     - transformers
     - peft
-    - torchaudio
     - torchcodec
     - soundfile
-    - pandas
     - silero-vad
 
 # FFMPEG is required too for torchaudio to load audio files, but it is not available as a conda package. You can install it separately on your system.
