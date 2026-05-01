@@ -7,14 +7,15 @@ channels:
 dependencies:
   - python=3.11
   - montreal-forced-aligner
-  - pytorch=2.5.1  # Pinning to a stable version known for compatibility
-  - torchaudio=2.5.1
-  - pytorch-cuda=11.8
-  - ffmpeg=6.1     # Specifically version 6 often works best with current torchcodec
+  - pytorch
+  - torchaudio
+  - pytorch-cuda=11.8 # Might not need cuda if on a mac
+  - ffmpeg
   - pandas
   - pip
   - pip:
-    - torchcodec==0.2.0  # Check compatibility table for your Torch version
+    - faster-whisper
+    - torchcodec
     - TextGrid
     - lingua-language-detector
     - fastapi
@@ -24,3 +25,5 @@ dependencies:
     - peft
     - soundfile
     - silero-vad
+    - vosk
+    - torch

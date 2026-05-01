@@ -27,7 +27,7 @@ app.add_middleware(
 @app.post("/transcribe")
 async def transcribe_audio(
     audio: UploadFile = File(...),
-    method: str = Form(""), # ["whisper", "aws", "sonix", ""]
+    method: str = Form(""), # ["whisper", "faster-whisper", "aws", "sonix", "vosk", ""]
 ):
     with tempfile.TemporaryDirectory() as temp_dir:
         audio_path = os.path.join(temp_dir, audio.filename)
@@ -124,39 +124,40 @@ async def convert_json_to_tg(
     else:
         raise HTTPException(400, "Provide a .json file or paste the JSON content.")
     
-    with tempfile.TemporaryDirectory() as temp_dir:
-        tg_path = os.path.join(temp_dir, f"{base_name}.TextGrid")
-        EP.json_to_textgrid(data, tg_path)
-        return FileResponse(tg_path, filename=f"{base_name}.TextGrid")
+    tg_path = os.path.join(tempfile.gettempdir(), f"{base_name}.TextGrid")
+    EP.json_to_textgrid(data, tg_path)
+    
+    return FileResponse(tg_path, filename=f"{base_name}.TextGrid")
 
 @app.post("/edit/textgrid-to-json")
 async def convert_tg_to_json(
     file: UploadFile = File(...),
-    tier_index: int = Form(0) # Default to the first tier
+    tier_index: int = Form(0)
 ):
-    """Upload edited TextGrid, specify the tier index, download simple JSON."""
-    if not file.filename.endswith('.TextGrid'):
+    """Upload TextGrid, return JSON data as text for easy copying."""
+    if not file.filename.lower().endswith('.textgrid'):
         raise HTTPException(400, "Please upload a .TextGrid file")
 
     with tempfile.TemporaryDirectory() as temp_dir:
         tg_path = os.path.join(temp_dir, file.filename)
+        
+        # Save the uploaded file temporarily
         with open(tg_path, "wb") as f:
             shutil.copyfileobj(file.file, f)
             
         try:
+            # 1. Convert TextGrid to a Python list/dict
             segments = EP.textgrid_to_json(tg_path, tier_index=tier_index)
             
-            json_name = file.filename.replace(".TextGrid", ".json")
-            json_path = os.path.join(temp_dir, json_name)
-            with open(json_path, "w") as f:
-                json.dump(segments, f, indent=4)
-                
-            return FileResponse(json_path, filename=json_name)
-        except IndexError as e:
-            raise HTTPException(400, detail=str(e))
+            # 2. Return segments directly. 
+            # FastAPI turns this into a JSON string automatically.
+            return segments
+            
+        except IndexError:
+            raise HTTPException(400, detail=f"Tier index {tier_index} not found in TextGrid.")
         except Exception as e:
             raise HTTPException(500, detail=f"Conversion failed: {str(e)}")
-
+        
 @app.get("/health")
 async def health():
     return {"status": "healthy"}

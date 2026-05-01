@@ -84,3 +84,9 @@ for interval in tg[utterance_tier]:
 segments = AP.script(audio_path=audio_path, transcript=transcript, temp_dir=output_dir, languages=languages, download_models=False)
 print(segments)
 ```
+
+# TODO
+- Add speaker diarization
+- Fix TranscriptPipeline (only vosk works right now)
+    - Fix dependencies in environment.yaml
+- Record a demo
