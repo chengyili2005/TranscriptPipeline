@@ -7,13 +7,14 @@ channels:
 dependencies:
   - python=3.11
   - montreal-forced-aligner
-  - pytorch
-  - torchaudio
-  - pytorch-cuda=11.8  # Or 12.1 depending on your GPU driver
-  - ffmpeg
-  - pip
+  - pytorch=2.5.1  # Pinning to a stable version known for compatibility
+  - torchaudio=2.5.1
+  - pytorch-cuda=11.8
+  - ffmpeg=6.1     # Specifically version 6 often works best with current torchcodec
   - pandas
+  - pip
   - pip:
+    - torchcodec==0.2.0  # Check compatibility table for your Torch version
     - TextGrid
     - lingua-language-detector
     - fastapi
@@ -21,8 +22,5 @@ dependencies:
     - python-multipart
     - transformers
     - peft
-    - torchcodec
     - soundfile
     - silero-vad
-
-# FFMPEG is required too for torchaudio to load audio files, but it is not available as a conda package. You can install it separately on your system.

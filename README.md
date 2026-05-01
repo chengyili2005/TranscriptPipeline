@@ -6,11 +6,18 @@
 
 ### Clone
 ```bash
+# Open up a directory where you want to clone this folder. (Can be anywhere, just remember where it is for later.)
+cd ~/Desktop/
+
+# Pull my code from the cloud
 git clone https://github.com/chengyili2005/TranscriptPipeline.git
 ```
 
 ### Make a conda environment w/ requirements
 ```bash
+# Go inside the cloned directory
+cd TranscriptPipeline/
+
 # Create & activate the environment
 conda env create -f environment.yaml
 conda activate TranscriptPipeline
@@ -19,10 +26,9 @@ conda activate TranscriptPipeline
 # Use as FastAPI
 
 ```bash
-# cd TranscriptPipeline/ directory
 uvicorn api:app --host 0.0.0.0 --port 8000
 ```
-Then, visit http://localhost:8000/docs for a frontend interface
+Then, visit http://localhost:8000/docs for a frontend interface.
 
 # Endpoints
 You do not have to go through the full pipeline.
@@ -48,3 +54,33 @@ You do not have to go through the full pipeline.
 ```
 - Data is only English, Spanish, and/or Chinese (Mandarin).
 - Scripts are being ran inside the repo directory.
+
+Example: MFA alignment on TextGrid file
+
+```python
+import AlignPipeline as AP
+from lingua import Language
+from textgrid import TextGrid # For opening TextGrids
+
+# Set variables & specify tier with utterances
+audio_path = 'input/example1.wav'
+textgrid_path = 'input/example1.TextGrid'
+utterance_tier = 0 # NOTE: First tier is utterance
+languages = [Language.ENGLISH, Language.SPANISH, Language.CHINESE]
+output_dir = 'output/'
+
+# Extract json from textgrid
+tg = TextGrid()
+tg.read(textgrid_path)
+transcript = []
+for interval in tg[utterance_tier]:
+  transcript.append({
+    "start": interval.minTime,
+    "end": interval.maxTime,
+    "text": interval.mark
+  })
+
+# Call script
+segments = AP.script(audio_path=audio_path, transcript=transcript, temp_dir=output_dir, languages=languages, download_models=False)
+print(segments)
+```
