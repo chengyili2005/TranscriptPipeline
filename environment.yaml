@@ -9,7 +9,8 @@ dependencies:
   - montreal-forced-aligner
   - pytorch
   - torchaudio
-  - pytorch-cuda=11.8 # Might not need cuda if on a mac
+  - pytorch-cuda=12.1 
+  - nvidia::cuda-toolkit
   - ffmpeg
   - pandas
   - pip
