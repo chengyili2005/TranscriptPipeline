@@ -184,9 +184,15 @@ def done2csv(segments, output_path=os.path.join(OUTPUT_DIR, 'base_name' + '_Alig
   """Exports to pandas dataframe csv"""
   df = []
   for segment in segments:
+    if len(segment['words']) == 0:
+       start = segment['start']
+       end = segment['end']
+    else:
+       start = segment['words'][0]['start']
+       end = segment['words'][-1]['end']
     df.append({
-      'start': segment['words'][0]['start'],
-      'end': segment['words'][-1]['end'],
+      'start': start,
+      'end': end,
       'text': segment['text'],
       'language': segment['language'],
       'words': segment['words']

@@ -4,6 +4,8 @@
 *.json
 *.Datavyu
 *.csv
+*.zip
+*.txt
 *__pycache__*
 
 # Secret
