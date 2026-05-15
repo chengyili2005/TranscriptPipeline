@@ -74,8 +74,8 @@ dv_filenames.each do |dv_file|
         text_val = cell.get_code(cell.arglist.first) || ""
         
         {
-          'start' => cell.onset,
-          'end' => cell.offset,
+          'start' => cell.onset/1000,
+          'end' => cell.offset/1000,
           'text' => text_val.to_s
         }
       end
