@@ -6,6 +6,7 @@
 *.csv
 *.zip
 *.txt
+*.m4a
 *__pycache__*
 
 # Secret

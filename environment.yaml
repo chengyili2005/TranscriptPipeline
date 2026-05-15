@@ -1,7 +1,7 @@
 name: TranscriptPipeline
 channels:
   - conda-forge
-  - pytorch
+  # - pytorch
   - nvidia
   - defaults
 dependencies:
@@ -9,8 +9,8 @@ dependencies:
   - montreal-forced-aligner
   - pytorch
   - torchaudio
-  - pytorch-cuda=12.1 
-  - nvidia::cuda-toolkit
+  # - pytorch-cuda=12.1 
+  # - nvidia::cuda-toolkit
   - ffmpeg
   - pandas
   - pip
