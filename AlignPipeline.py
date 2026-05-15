@@ -66,13 +66,16 @@ def download_MFA_models():
 def detect_language(text, detector=LanguageDetectorBuilder.from_languages(*LANGUAGES).build()):
   """Detects a language using lingua. text -> [lingua.Language, float]"""
   language, confidence = Language.ENGLISH, 0.0
-  if text.isdigit(): # For numbers we really can't give a good guess
-    return language, confidence
-  elif any(char in text for char in "¡¿áéíóúñüÁÉÍÓÚÑÜ"): # Through special Spanish characters
-      language, confidence = Language.SPANISH, 1.0
-  else: # Through lingua
-    language = detector.detect_language_of(text)
-    confidence = detector.compute_language_confidence(text, language)
+  try:
+    if text.isdigit(): # For numbers we really can't give a good guess
+      return language, confidence
+    elif any(char in text for char in "¡¿áéíóúñüÁÉÍÓÚÑÜ"): # Through special Spanish characters
+        language, confidence = Language.SPANISH, 1.0
+    else: # Through lingua
+      language = detector.detect_language_of(text)
+      confidence = detector.compute_language_confidence(text, language)
+  except:
+     return language, confidence
   return language, confidence
 
 def is_empty_textgrid(tg):
@@ -103,7 +106,7 @@ def done2textgrid(segments, output_path=os.path.join(OUTPUT_DIR, 'base_name' + '
 
     for segment in segments:
         try:
-            raw_utt_tier.add(segment['start'], segment['end'], segment['text'])
+            raw_utt_tier.add(float(segment['start']), float(segment['end']), segment['text'])
         except Exception as e:
             print("Failed to add raw_utt_tier:", e, segment)
 
@@ -120,29 +123,29 @@ def done2textgrid(segments, output_path=os.path.join(OUTPUT_DIR, 'base_name' + '
         if unique_words:
             try:
                 aligned_utt_tier.add(
-                    unique_words[0]['start'],
-                    unique_words[-1]['end'],
+                    float(unique_words[0]['start']),
+                    float(unique_words[-1]['end']),
                     segment['text']
                 )
             except Exception as e:
                 print("Failed to add aligned_utt_tier:", e, segment)
             try:
                 utt_lang_tier.add(
-                    unique_words[0]['start'],
-                    unique_words[-1]['end'],
+                    float(unique_words[0]['start']),
+                    float(unique_words[-1]['end']),
                     f"{segment['language'][0]}, {segment['language'][1]:.4f}"
                 )
             except Exception as e:
                 print("Failed to add utt_lang_tier:", e, segment)
         else:
             try:
-                aligned_utt_tier.add(segment['start'], segment['end'], segment['text'])
+                aligned_utt_tier.add(float(segment['start']), float(segment['end']), segment['text'])
             except Exception as e:
                 print("Failed to add aligned_utt_tier (fallback):", e, segment)
             try:
                 utt_lang_tier.add(
-                    segment['start'],
-                    segment['end'],
+                    float(segment['start']),
+                    float(segment['end']),
                     f"{segment['language'][0]}, {segment['language'][1]:.4f}"
                 )
             except Exception as e:
@@ -150,13 +153,13 @@ def done2textgrid(segments, output_path=os.path.join(OUTPUT_DIR, 'base_name' + '
 
         for word_segment in unique_words:
             try:
-                word_tier.add(word_segment['start'], word_segment['end'], word_segment['text'])
+                word_tier.add(float(word_segment['start']), float(word_segment['end']), word_segment['text'])
             except Exception as e:
                 print("Failed to add word_tier:", e, word_segment)
             try:
                 word_lang_tier.add(
-                    word_segment['start'],
-                    word_segment['end'],
+                    float(word_segment['start']),
+                    float(word_segment['end']),
                     f"{word_segment['language'][0]}, {word_segment['language'][1]:.4f}"
                 )
             except Exception as e:
@@ -246,7 +249,7 @@ def script(audio_path=str, transcript=str or list, temp_dir=OUTPUT_DIR, language
     for segment in segments:
       if segment['language'][0] == language:
         try:
-          text_tier.add(segment['start'], segment['end'], segment['text'])
+          text_tier.add(float(segment['start']), float(segment['end']), segment['text'])
         except Exception as e:
           print("Failed to append", segment, e)
     tg.append(text_tier)
@@ -305,7 +308,7 @@ def script(audio_path=str, transcript=str or list, temp_dir=OUTPUT_DIR, language
   for segment in segments:
     segment['words'] = []
     for word_interval in word_intervals:
-      if word_interval['start'] >= segment['start'] - 0.01 and word_interval['end'] <= segment['end'] + 0.01:
+      if float(word_interval['start']) >= float(segment['start']) - 0.01 and float(word_interval['end']) <= float(segment['end']) + 0.01:
         segment['words'].append(word_interval)
 
   # Extra: Utterance languages are already appended onto each segment.
@@ -325,9 +328,14 @@ def script(audio_path=str, transcript=str or list, temp_dir=OUTPUT_DIR, language
 
   # Postprocessing: Turn languages into strings
   for segment in segments:
-    segment['language'] = segment['language'][0].name, segment['language'][1]
-    for word_segment in segment['words']:
-      word_segment['language'] = word_segment['language'][0].name, segment['language'][1]
+    try:
+      segment['language'] = segment['language'][0].name, segment['language'][1]
+      for word_segment in segment['words']:
+        word_segment['language'] = word_segment['language'][0].name, segment['language'][1]
+    except:
+      segment['language'] = str(segment['language'][0]), segment['language'][1]
+      for word_segment in segment['words']:
+        word_segment['language'] = str(word_segment['language'][0]), segment['language'][1]
 
   # Export: Praat
   print("Start exporting TextGrid...")
