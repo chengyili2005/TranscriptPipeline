@@ -31,7 +31,11 @@ uvicorn api:app --host 0.0.0.0 --port 8000
 Then, visit http://localhost:8000/docs for a frontend interface.
 
 # Endpoints
-You do not have to go through the full pipeline.
+You do NOT have to go through the full pipeline.
+### Shign
+- Takes in two media files (.e.g `.wav` & `.mov`) and finds the shift that maximizes the amplitude correlation between the two.
+  - Pad: To edit a file such that both are in sync
+  - Pad_mode: Likely want to edit the "video" since the audio was used for transcription already. 
 ### Transcribe
 - Takes in a `.wav` file and transcribes it using Whisper
     - If you already have a transcript, make sure it's in the assumed format in the **Assumptions** section. TextGrid2Json might help with that.
@@ -85,8 +89,8 @@ segments = AP.script(audio_path=audio_path, transcript=transcript, temp_dir=outp
 print(segments)
 ```
 
+See `test.ipynb` for more examples.
+
 # TODO
 - Add speaker diarization
-- Fix TranscriptPipeline (only vosk works right now)
-    - Fix dependencies in environment.yaml
-- Record a demo
+- Better language detection

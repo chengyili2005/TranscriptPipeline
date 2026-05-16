@@ -1,13 +1,9 @@
 import torch
 import json
 import subprocess
-from transformers import pipeline, WhisperForConditionalGeneration, WhisperProcessor
-from peft import PeftModel
 from faster_whisper import WhisperModel
 from vosk import Model, KaldiRecognizer
 
-HUB_REPO = "chengyili2005/whisper-medium-DINA"
-BASE_MODEL = "openai/whisper-medium"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Specify the language for auto-download, or use an exact model name
@@ -15,43 +11,10 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 VOSK_MODEL_LANG = "en-us"
 
 # ── Global Cache for Models ──────────────────────────────────────────────────
-_asr_pipeline = None  # For PEFT / Transformers
 _faster_model = None  # For Faster-Whisper
 _vosk_model = None  # For Vosk
 
 # ── Loaders ──────────────────────────────────────────────────────────────────
-def _load_whisper_peft():
-    global _asr_pipeline
-    if _asr_pipeline is not None:
-        return _asr_pipeline
-
-    processor = WhisperProcessor.from_pretrained(
-        HUB_REPO, language="english", task="transcribe"
-    )
-    base_model = WhisperForConditionalGeneration.from_pretrained(
-        BASE_MODEL,
-        torch_dtype=torch.float16,
-        low_cpu_mem_usage=True,
-    )
-    model = PeftModel.from_pretrained(base_model, HUB_REPO)
-    model = model.merge_and_unload()
-    model.to(DEVICE)
-    model.eval()
-
-    _asr_pipeline = pipeline(
-        "automatic-speech-recognition",
-        model=model,
-        tokenizer=processor.tokenizer,
-        feature_extractor=processor.feature_extractor,
-        dtype=torch.float16,
-        device=DEVICE,
-        chunk_length_s=30,
-        stride_length_s=5,
-        batch_size=1,
-    )
-    return _asr_pipeline
-
-
 def _load_faster_whisper():
     global _faster_model
     if _faster_model is not None:
@@ -134,31 +97,6 @@ def _group_into_utterances(
 
 
 # ── Transcription Logic ──────────────────────────────────────────────────────
-def _transcribe_peft(audio_path: str) -> list[dict]:
-    asr = _load_whisper_peft()
-
-    try:
-        with torch.inference_mode():
-            result = asr(
-                audio_path,
-                generate_kwargs={
-                    "language": "english",
-                    "task": "transcribe",
-                    "condition_on_prev_tokens": False,
-                    "no_speech_threshold": 0.6,
-                    "logprob_threshold": -1.0,
-                    "compression_ratio_threshold": 1.35,
-                    "temperature": 0.0,
-                },
-                return_timestamps="word",
-            )
-    finally:
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-
-    return _group_into_utterances(result["chunks"])
-
-
 def _transcribe_faster(audio_path: str) -> list[dict]:
     model = _load_faster_whisper()
 
@@ -254,18 +192,12 @@ def script(
     """
     method = method.lower()
 
-    if method == "whisper":
-        return _transcribe_peft(audio_path)
-    elif method == "faster-whisper":
+    if method == "faster-whisper":
         return _transcribe_faster(audio_path)
     elif method == "vosk":
         return _transcribe_vosk(audio_path)
-    elif method == "aws":
-        raise NotImplementedError("AWS transcription is not yet implemented")
-    elif method == "sonix":
-        raise NotImplementedError("Sonix transcription is not yet implemented")
     else:
         raise ValueError(
             f"Unknown transcription method: '{method}'. "
-            "Currently only 'whisper', 'faster-whisper', and 'vosk' are supported."
+            "Currently only 'faster-whisper', and 'vosk' are supported."
         )

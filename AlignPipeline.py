@@ -165,11 +165,11 @@ def done2textgrid(segments, output_path=os.path.join(OUTPUT_DIR, 'base_name' + '
             except Exception as e:
                 print("Failed to add word_lang_tier:", e, word_segment)
 
-    tg.append(raw_utt_tier)
+    tg.append(raw_utt_tier) # Kept it here just for visualizing before and after
     tg.append(aligned_utt_tier)
     tg.append(utt_lang_tier)
     tg.append(word_tier)
-    tg.append(word_lang_tier)
+    # tg.append(word_lang_tier)
 
     if not is_empty_textgrid(tg):
         tg.write(output_path)
@@ -310,8 +310,6 @@ def script(audio_path=str, transcript=str or list, temp_dir=OUTPUT_DIR, language
     for word_interval in word_intervals:
       if float(word_interval['start']) >= float(segment['start']) - 0.01 and float(word_interval['end']) <= float(segment['end']) + 0.01:
         segment['words'].append(word_interval)
-
-  # Extra: Utterance languages are already appended onto each segment.
 
   # Extra: Add word languages
   for segment in segments:

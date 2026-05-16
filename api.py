@@ -11,6 +11,7 @@ import zipfile
 import TranscribePipeline as TP
 import AlignPipeline as AP
 import EditPipeline as EP
+import ShignPipeline as SP
 import ConfigPipeline as Config
 from lingua import Language
 
@@ -24,10 +25,63 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.post("/shign")
+async def shign_align(
+    file1: UploadFile = File(..., description="First audio/video file"),
+    file2: UploadFile = File(..., description="Second audio/video file"),
+    pad: bool = Form(False, description="Create new files with padding applied"),
+    pad_mode: str = Form("video", description="Which media to pad/cut: 'video' or 'audio'"),
+):
+    """Upload two audio/video files to align them using Shign.
+
+    Args:
+        file1: First audio or video file (.mp4, .mov, .mp3, .wav)
+        file2: Second audio or video file (.mp4, .mov, .mp3, .wav)
+        pad: If True, creates new files with padding applied to sync them
+        pad_mode: Which media type to pad for syncing: 'video' or 'audio'
+
+    Returns:
+        JSON with alignment results and delta in milliseconds
+    """
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        
+        # Save uploaded files
+        path1 = os.path.join(temp_dir, file1.filename)
+        path2 = os.path.join(temp_dir, file2.filename)
+
+        with open(path1, "wb") as f:
+            shutil.copyfileobj(file1.file, f)
+        with open(path2, "wb") as f:
+            shutil.copyfileobj(file2.file, f)
+
+        try:
+            output = SP.script(path1, path2, pad=pad, pad_mode=pad_mode)
+
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+        # Handle response based on whether files were aligned
+        if pad and output:
+            # pad=True: SP.script returns paths to aligned files, create zip
+            path1_aligned, path2_aligned = output
+            base_name = os.path.basename(path1).rsplit('.', 1)[0]
+            zip_filename = f"{base_name}_shigned.zip"
+            zip_path = os.path.join(Config.OUTPUT_DIR, zip_filename)
+
+            with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+                zf.write(path1_aligned, arcname=os.path.basename(path1_aligned))
+                zf.write(path2_aligned, arcname=os.path.basename(path2_aligned))
+
+            return FileResponse(zip_path, media_type="application/zip", filename=zip_filename)
+        else:
+            # pad=False or no alignment needed: return original files info
+            return {"status": "aligned", "file1": path1, "file2": path2, "Output": output}
+
 @app.post("/transcribe")
 async def transcribe_audio(
     audio: UploadFile = File(...),
-    method: str = Form(""), # ["whisper", "faster-whisper", "aws", "sonix", "vosk", ""]
+    method: str = Form(""), # ["faster-whisper", "vosk", ""]
 ):
     with tempfile.TemporaryDirectory() as temp_dir:
         audio_path = os.path.join(temp_dir, audio.filename)
@@ -45,6 +99,57 @@ async def transcribe_audio(
             raise HTTPException(status_code=500, detail=str(e))
         
         return result
+
+@app.post("/edit/json-to-textgrid")
+async def convert_json_to_tg(
+    file: Optional[UploadFile] = File(None),
+    json_text: Optional[str] = Form(None)
+):
+    """Upload simplified JSON OR paste it, download TextGrid."""
+    
+    if file:
+        content = await file.read()
+        data = json.loads(content)
+        base_name = file.filename.rsplit('.', 1)[0]
+    elif json_text:
+        data = json.loads(json_text)
+        base_name = "pasted_transcript"
+    else:
+        raise HTTPException(400, "Provide a .json file or paste the JSON content.")
+    
+    tg_path = os.path.join(tempfile.gettempdir(), f"{base_name}.TextGrid")
+    EP.json_to_textgrid(data, tg_path)
+    
+    return FileResponse(tg_path, filename=f"{base_name}.TextGrid")
+
+@app.post("/edit/textgrid-to-json")
+async def convert_tg_to_json(
+    file: UploadFile = File(...),
+    tier_index: int = Form(0)
+):
+    """Upload TextGrid, return JSON data as text for easy copying."""
+    if not file.filename.lower().endswith('.textgrid'):
+        raise HTTPException(400, "Please upload a .TextGrid file")
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        tg_path = os.path.join(temp_dir, file.filename)
+        
+        # Save the uploaded file temporarily
+        with open(tg_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+            
+        try:
+            # 1. Convert TextGrid to a Python list/dict
+            segments = EP.textgrid_to_json(tg_path, tier_index=tier_index)
+            
+            # 2. Return segments directly. 
+            # FastAPI turns this into a JSON string automatically.
+            return segments
+            
+        except IndexError:
+            raise HTTPException(400, detail=f"Tier index {tier_index} not found in TextGrid.")
+        except Exception as e:
+            raise HTTPException(500, detail=f"Conversion failed: {str(e)}")
 
 @app.post("/align")
 async def align_audio(
@@ -106,57 +211,6 @@ async def align_audio(
             raise HTTPException(status_code=500, detail="No output files were generated.")
 
         return FileResponse(zip_path, media_type="application/zip", filename=zip_filename)
-    
-@app.post("/edit/json-to-textgrid")
-async def convert_json_to_tg(
-    file: Optional[UploadFile] = File(None),
-    json_text: Optional[str] = Form(None)
-):
-    """Upload simplified JSON OR paste it, download TextGrid."""
-    
-    if file:
-        content = await file.read()
-        data = json.loads(content)
-        base_name = file.filename.rsplit('.', 1)[0]
-    elif json_text:
-        data = json.loads(json_text)
-        base_name = "pasted_transcript"
-    else:
-        raise HTTPException(400, "Provide a .json file or paste the JSON content.")
-    
-    tg_path = os.path.join(tempfile.gettempdir(), f"{base_name}.TextGrid")
-    EP.json_to_textgrid(data, tg_path)
-    
-    return FileResponse(tg_path, filename=f"{base_name}.TextGrid")
-
-@app.post("/edit/textgrid-to-json")
-async def convert_tg_to_json(
-    file: UploadFile = File(...),
-    tier_index: int = Form(0)
-):
-    """Upload TextGrid, return JSON data as text for easy copying."""
-    if not file.filename.lower().endswith('.textgrid'):
-        raise HTTPException(400, "Please upload a .TextGrid file")
-
-    with tempfile.TemporaryDirectory() as temp_dir:
-        tg_path = os.path.join(temp_dir, file.filename)
-        
-        # Save the uploaded file temporarily
-        with open(tg_path, "wb") as f:
-            shutil.copyfileobj(file.file, f)
-            
-        try:
-            # 1. Convert TextGrid to a Python list/dict
-            segments = EP.textgrid_to_json(tg_path, tier_index=tier_index)
-            
-            # 2. Return segments directly. 
-            # FastAPI turns this into a JSON string automatically.
-            return segments
-            
-        except IndexError:
-            raise HTTPException(400, detail=f"Tier index {tier_index} not found in TextGrid.")
-        except Exception as e:
-            raise HTTPException(500, detail=f"Conversion failed: {str(e)}")
         
 @app.get("/health")
 async def health():
