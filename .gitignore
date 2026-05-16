@@ -8,6 +8,8 @@
 *.txt
 *.m4a
 *__pycache__*
+*.mov
+*.mp3
 
 # Secret
 GUIDE.md
