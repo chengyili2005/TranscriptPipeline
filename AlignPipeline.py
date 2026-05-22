@@ -230,6 +230,8 @@ def script(audio_path=str, transcript=str or list, temp_dir=OUTPUT_DIR, language
   # Detect a language for each utterance
   for segment in segments:
     segment['language'] = detect_language(segment['text'])
+    if segment['language'][0] not in languages:
+       languages.append(segment['language'][0])
 
   # Preparing: Make separate temporary directories for each language
   os.makedirs(temp_dir, exist_ok=True)
@@ -284,10 +286,14 @@ def script(audio_path=str, transcript=str or list, temp_dir=OUTPUT_DIR, language
 
   # Alignment: Run MFA on these files
   word_intervals = []
-  for language in LANGUAGES:
+  for language in languages:
     if contains_language(segments, language):
-      acoustic_name, dictionary_name = LANGUAGES_MAP[language]['acoustic'], LANGUAGES_MAP[language]['dictionary']
-      language_dir, language_in_dir, language_out_dir = LANGUAGES_MAP[language]['language_dir'], LANGUAGES_MAP[language]['language_in_dir'], LANGUAGES_MAP[language]['language_out_dir']
+      print(f"Current language: {language}")
+      try:
+        acoustic_name, dictionary_name = LANGUAGES_MAP[language]['acoustic'], LANGUAGES_MAP[language]['dictionary']
+        language_dir, language_in_dir, language_out_dir = LANGUAGES_MAP[language]['language_dir'], LANGUAGES_MAP[language]['language_in_dir'], LANGUAGES_MAP[language]['language_out_dir']
+      except Exception as e:
+         raise Exception(f"Failed to find the keys: {e}")
       print(f"{language} alignment start.")
       command = ['mfa', 'align', language_in_dir, dictionary_name, acoustic_name, language_out_dir]
       print(f"Running: {' '.join(command)}")
@@ -296,6 +302,17 @@ def script(audio_path=str, transcript=str or list, temp_dir=OUTPUT_DIR, language
         print("Error Output:", out)
         raise Exception(f"Failed to align for {language}")
       print(f"{language} alignment done.")
+
+      # Clear out the language input directory after successful alignment
+      if os.path.exists(language_in_dir):
+          for item in os.listdir(language_in_dir):
+              item_path = os.path.join(language_in_dir, item)
+              if os.path.isfile(item_path):
+                  os.remove(item_path)
+              elif os.path.isdir(item_path):
+                  shutil.rmtree(item_path)
+          print(f"  Cleared {language_in_dir}")
+
       tg = TextGrid()
       tg.read(os.path.join(language_out_dir, base_name + '.TextGrid'))
       word_intervals += [interval for interval in tg[0]]

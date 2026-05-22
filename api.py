@@ -211,7 +211,77 @@ async def align_audio(
             raise HTTPException(status_code=500, detail="No output files were generated.")
 
         return FileResponse(zip_path, media_type="application/zip", filename=zip_filename)
-        
+
+@app.post("/edit/m4a-to-wav")
+async def convert_m4a_to_wav(
+    file: UploadFile = File(..., description="M4A audio file to convert to WAV")
+):
+    """Upload an M4A file to convert to WAV format.
+
+    The WAV file will be generated with the same filename but with .wav extension.
+
+    Args:
+        file: M4A audio file to convert
+
+    Returns:
+        The converted WAV file for download
+    """
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Save uploaded file
+        m4a_path = os.path.join(temp_dir, file.filename)
+        with open(m4a_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+
+        try:
+            # Convert M4A to WAV
+            wav_path = EP.M4aToWav(m4a_path)
+
+            # Return the WAV file for download
+            return FileResponse(
+                wav_path,
+                media_type="audio/wav",
+                filename=os.path.basename(wav_path)
+            )
+
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Conversion failed: {str(e)}")
+
+
+@app.post("/edit/mp3-to-wav")
+async def convert_mp3_to_wav(
+    file: UploadFile = File(..., description="MP3 audio file to convert to WAV")
+):
+    """Upload an MP3 file to convert to WAV format.
+
+    The WAV file will be generated with the same filename but with .wav extension.
+
+    Args:
+        file: MP3 audio file to convert
+
+    Returns:
+        The converted WAV file for download
+    """
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Save uploaded file
+        mp3_path = os.path.join(temp_dir, file.filename)
+        with open(mp3_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+
+        try:
+            # Convert MP3 to WAV
+            wav_path = EP.Mp3ToWav(mp3_path)
+
+            # Return the WAV file for download
+            return FileResponse(
+                wav_path,
+                media_type="audio/wav",
+                filename=os.path.basename(wav_path)
+            )
+
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Conversion failed: {str(e)}")
+
+
 @app.get("/health")
 async def health():
     return {"status": "healthy"}

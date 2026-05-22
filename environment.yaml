@@ -24,6 +24,8 @@ dependencies:
     - uvicorn
     - python-multipart
     - transformers
+    - pydub
+    - ipykernel
     - peft
     - soundfile
     - silero-vad

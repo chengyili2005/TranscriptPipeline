@@ -1,6 +1,22 @@
 import os
 import json
 from textgrid import TextGrid, IntervalTier
+from pydub import AudioSegment
+
+def m4a_to_wav(m4a_path):
+    """Converts M4A file to WAV format, keeping the same basename."""
+    wav_filename = m4a_path.replace('.m4a', '.wav')
+    sound = AudioSegment.from_file(m4a_path, format='m4a')
+    sound.export(wav_filename, format='wav')
+    return wav_filename
+
+def mp3_to_wav(mp3_path):
+    """Converts MP3 file to WAV format, keeping the same basename."""
+    wav_filename = mp3_path.replace('.mp3', '.wav')
+    sound = AudioSegment.from_file(mp3_path, format='mp3')
+    sound.export(wav_filename, format='wav')
+    return wav_filename
+
 
 def json_to_textgrid(json_data, output_path):
     """

@@ -119,9 +119,9 @@ def script(inputfile1, inputfile2, pad, pad_mode="video"):
   # Get milliseconds needed to shift
   delta_b = shign.get_shift_ms(audio_a=audio_1, audio_b=audio_2, sr_a=sr_1, sr_b=sr_2)
   if delta_b > 0:
-    message = f"{delta_b, "milliseconds needs to be added to the beginning of", inputfile2}"
+    message = f"{delta_b} milliseconds needs to be added to the beginning of {inputfile2}"
   elif delta_b < 0:
-    message = f"{abs(delta_b), "milliseconds needs to be added to the beginning of", inputfile1}"
+    message = f"{abs(delta_b)} milliseconds needs to be added to the beginning of {inputfile1}"
   else:
     message = "files are already lined up"
   print(message)

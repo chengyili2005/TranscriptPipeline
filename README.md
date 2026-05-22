@@ -44,6 +44,11 @@ You do NOT have to go through the full pipeline.
 - TextGrid2Json: After editting, turn the `.TextGrid` back into a `.json` for the alignment to be done.
 ### Align
 - Takes in a `.wav` file + `.json` transcript and outputs a .zip file of aligned text in `.csv`, `.json`, and `.TextGrid`.
+
+# Extras
+- datavytojsonbatch.rb takes in a datavyu directory and outputs jsons for MFA input
+- jsontodatavyuchunk.rb takes in MFA output and appends it onto the datavyu
+
 # Assumptions
 
 - Transcript must be formatted like this:
@@ -92,5 +97,6 @@ print(segments)
 See `test.ipynb` for more examples.
 
 # TODO
+- Make ruby scripts batched
 - Add speaker diarization
 - Better language detection
