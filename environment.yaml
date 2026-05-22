@@ -25,6 +25,7 @@ dependencies:
     - transformers
     - pydub
     - ipykernel
+    - psutil
     - peft
     - soundfile
     - silero-vad
