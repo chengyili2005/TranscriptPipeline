@@ -97,6 +97,7 @@ print(segments)
 See `test.ipynb` for more examples.
 
 # TODO
-- Make ruby scripts batched
+- Organize this directory better...
 - Add speaker diarization
 - Better language detection
+- Fix the 0 indexing

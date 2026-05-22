@@ -15,7 +15,6 @@ dependencies:
   - pandas
   - pip
   - pip:
-    - ipykernel
     - faster-whisper
     - torchcodec
     - TextGrid
