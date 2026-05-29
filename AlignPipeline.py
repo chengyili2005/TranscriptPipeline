@@ -74,8 +74,9 @@ def detect_language(text, detector=LanguageDetectorBuilder.from_languages(*LANGU
     else: # Through lingua
       language = detector.detect_language_of(text)
       confidence = detector.compute_language_confidence(text, language)
-  except:
-     return language, confidence
+  except Exception as e:
+     print("Failed to detect language for:", text)
+     print("Exception:", e)
   return language, confidence
 
 def is_empty_textgrid(tg):
@@ -229,9 +230,9 @@ def script(audio_path=str, transcript=str or list, temp_dir=OUTPUT_DIR, language
 
   # Detect a language for each utterance
   for segment in segments:
-    segment['language'] = detect_language(segment['text'])
+    segment['language'] = detect_language(segment['text'], detector=LanguageDetectorBuilder.from_languages(*LANGUAGES).build())
     if segment['language'][0] not in languages:
-       languages.append(segment['language'][0])
+       segment['language'] = languages[0], 0.50
 
   # Preparing: Make separate temporary directories for each language
   os.makedirs(temp_dir, exist_ok=True)

@@ -14,7 +14,7 @@ AUDIO_EXTENSIONS = [".mp3", ".wav"]
 
 def what_media(file):
   
-  # Determins what type of file the path is based off a list of supported extensions
+  # Determines what type of file the path is based off a list of supported extensions
   __, extension = os.path.splitext(file)
   if extension in VIDEO_EXTENSIONS:
     return 'video'
