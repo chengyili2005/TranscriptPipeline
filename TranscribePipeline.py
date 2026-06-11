@@ -9,6 +9,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # Specify the language for auto-download, or use an exact model name
 # via model_name="vosk-model-en-us-0.22" inside the Model() call.
 VOSK_MODEL_LANG = "en-us"
+WHISPER_MODEL_LANG = "en"
 
 # ── Global Cache for Models ──────────────────────────────────────────────────
 _faster_model = None  # For Faster-Whisper
@@ -210,5 +211,5 @@ def script(
     else:
         raise ValueError(
             f"Unknown transcription method: '{method}'. "
-            "Currently only 'faster-whisper', and 'vosk' are supported."
+            "Currently only 'faster-whisper' (cpu but ideally gpu), and 'vosk' (cpu) are supported."
         )
